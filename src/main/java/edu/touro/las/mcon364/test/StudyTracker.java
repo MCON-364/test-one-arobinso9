@@ -6,6 +6,7 @@ public class StudyTracker {
 
     private final Map<String, List<Integer>> scoresByLearner = new HashMap<>();
     private final Deque<UndoStep> undoStack = new ArrayDeque<>();
+
     // Helper methods already provided for tests and local inspection.
     public Optional<List<Integer>> scoresFor(String name) {
         return Optional.ofNullable(scoresByLearner.get(name));
@@ -25,7 +26,14 @@ public class StudyTracker {
      * Throw IllegalArgumentException if name is null or blank.
      */
     public boolean addLearner(String name) {
-        throw new UnsupportedOperationException();
+        if (name == null || name.isEmpty())
+            throw  new IllegalArgumentException(" name cannot be null or empty");
+
+        if (!scoresByLearner.containsKey(name)){
+            scoresByLearner.put(name, new ArrayList<>());
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -42,7 +50,17 @@ public class StudyTracker {
      * This operation should be undoable.
      */
     public boolean addScore(String name, int score) {
-        throw new UnsupportedOperationException();
+
+        if(score <0 || score > 100)
+            throw new IllegalArgumentException("score must be between 0 and 100");
+
+        if(scoresByLearner.containsKey(name)){
+            var scores = scoresByLearner.get(name);
+            scores.add(score);
+            undoStack.push(() -> scores.removeLast());
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -54,7 +72,15 @@ public class StudyTracker {
      * - the learner has no scores
      */
     public Optional<Double> averageFor(String name) {
-        throw new UnsupportedOperationException();
+        // if the student is NOT in the system or the student has no grades, return Optional.Empty() bc we hv no avg
+        if(!scoresByLearner.containsKey(name) || scoresByLearner.get(name).isEmpty())
+            return Optional.empty();
+        var scores = scoresByLearner.get(name);
+        int scoreTtl=0;
+        for (var score: scores){
+            scoreTtl+=score;
+        }
+        return Optional.ofNullable((double) scoreTtl/scores.size());
     }
 
     /**
@@ -70,7 +96,21 @@ public class StudyTracker {
      * Return Optional.empty() when no average exists.
      */
     public Optional<String> letterBandFor(String name) {
-        throw new UnsupportedOperationException();
+        Optional<Double> avgOptional= averageFor(name);
+        if(avgOptional.isEmpty())
+            return Optional.empty();
+
+        double avg= avgOptional.get();
+        var score = switch((int) avg /10){
+            case 10,9 -> "A";
+            case 8 -> "B";
+            case 7 -> "C";
+            case 6 -> "D";
+            default -> {
+                yield "F";
+            }
+        };
+        return Optional.ofNullable(score);
     }
 
     /**
@@ -81,7 +121,12 @@ public class StudyTracker {
      * Return false if there is nothing to undo.
      */
     public boolean undoLastChange() {
-        throw new UnsupportedOperationException();
+        if(undoStack.isEmpty())
+            return false;
+        // we pop the instruction out of the stack
+        var recentAction= undoStack.pop();
+        recentAction.undo();
+        return true;
     }
 
 
